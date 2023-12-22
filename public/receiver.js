@@ -42,13 +42,31 @@
             uid: senderId
         })
     })
+    function downloadBlob(blob, filename) {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename; // Set the desired filename here
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+      
+      
+      
+      
 
     socket.on("fs-share", function(buffer){
         fileShare.buffer.push(buffer)
         fileShare.transmited += buffer.byteLength
         fileShare.progress_node.innerText = Math.trunc(fileShare.transmited/  fileShare.metadata.total_buffer_size *100) + "%"
         if(fileShare.transmited == fileShare.metadata.total_buffer_size){
-            download(new Blob(fileShare.buffer), fileShare.metadata.filename)
+            // download(new Blob(fileShare.buffer), fileShare.metadata.filename)
+            downloadBlob(new Blob(fileShare.buffer), fileShare.metadata.filename);
+
+                
         }
         else{
             socket.emit("fs-start",{
