@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Encryption/Decryption</title>
+</head>
+<body>
+    <h1>File Encryption/Decryption</h1>
+
+    <input type="file" id="fileInput" accept=".pdf, .jpg, .jpeg, .html"> <!-- Add or remove file extensions as needed -->
+    <button onclick="handleEncryption()">Encrypt and Download</button>
+    <button onclick="handleDecryption()">Decrypt and Download</button>
+
+    <script>
+        async function handleEncryption() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const key = await generateKey();
+                const encryptedFileName = `encrypted_${file.name}.enc`;
+
+                try {
+                    const encryptedFile = await encryptFile(file, key);
+                    const encryptedBlob = new Blob([encryptedFile], { type: 'application/octet-stream' });
+
+                    downloadBlob(encryptedBlob, encryptedFileName);
+                } catch (error) {
+                    console.error('Encryption error:', error.message);
+                    alert('Error during encryption. Check the console for details.');
+                }
+            } else {
+                alert('Please select a file.');
+            }
+        }
+
+        async function handleDecryption() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const key = await generateKey();
+                const decryptedFileName = `decrypted_${file.name}`;
+
+                try {
+                    const decryptedFile = await decryptFile(file, key);
+                    const decryptedBlob = new Blob([decryptedFile]);
+
+                    downloadBlob(decryptedBlob, decryptedFileName);
+                } catch (error) {
+                    console.error('Decryption error:', error.message);
+                    alert('Error during decryption. Check the console for details.');
+                }
+            } else {
+                alert('Please select a file.');
+            }
+        }
+
+        async function generateKey() {
+            // This is just for demonstration purposes; in a real scenario, you might have a secure key exchange mechanism
+            return crypto.subtle.generateKey(
+                { name: 'AES-CBC', length: 256 },
+                true,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        async function encryptFile(file, key) {
+            const iv = crypto.getRandomValues(new Uint8Array(16));
+            const cipherBuffer = await crypto.subtle.encrypt(
+                { name: 'AES-CBC', iv },
+                key,
+                new Uint8Array(await file.arrayBuffer())
+            );
+
+            const encryptedBuffer = new Uint8Array([...iv, ...new Uint8Array(cipherBuffer)]);
+            return encryptedBuffer;
+        }
+
+        async function decryptFile(file, key) {
+            try {
+                const fileArrayBuffer = await file.arrayBuffer();
+                const iv = new Uint8Array(fileArrayBuffer.slice(0, 16));
+                const data = new Uint8Array(fileArrayBuffer.slice(16));
+
+                const decrypted = await crypto.subtle.decrypt(
+                    { name: 'AES-CBC', iv },
+                    key,
+                    data
+                );
+
+                return new Uint8Array(decrypted);
+            } catch (error) {
+                console.error('Decryption error:', error);
+                throw new Error('Error during decryption');
+            }
+        }
+
+        function downloadBlob(blob, fileName) {
+            const downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.download = fileName;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+    </script>
+</body>
+</html>
